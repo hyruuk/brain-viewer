@@ -70,12 +70,18 @@ def _mask_to_polydata(
     mask: np.ndarray,
     affine: np.ndarray,
     smoothing_iters: int,
+    level: float = 0.5,
 ) -> pv.PolyData:
-    """Binary voxel mask → smoothed PolyData in world (affine-transformed) coords."""
-    # Pad with zeros to guarantee a watertight surface at the volume boundary.
-    padded = np.pad(mask.astype(np.uint8), pad_width=1, mode="constant", constant_values=0)
+    """Voxel volume → smoothed PolyData in world (affine-transformed) coords.
 
-    verts, faces, _normals, _vals = measure.marching_cubes(padded, level=0.5)
+    For binary masks pass `level=0.5` (default). For intensity or probability
+    volumes, pass an explicit threshold matching the data scale.
+    """
+    # Pad with zeros to guarantee a watertight surface at the volume boundary.
+    dtype = np.float32 if mask.dtype.kind == "f" else np.uint8
+    padded = np.pad(mask.astype(dtype), pad_width=1, mode="constant", constant_values=0)
+
+    verts, faces, _normals, _vals = measure.marching_cubes(padded, level=level)
     # Undo the pad offset.
     verts = verts - 1.0
 

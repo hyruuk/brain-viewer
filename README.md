@@ -84,16 +84,19 @@ The Glasser atlas is not bundled with nilearn because of licensing. To enable it
 
 ## Templates
 
-Each template is a glass shell mesh rendered semi-transparent. ROI solids sit inside. Switching templates does not re-mesh ROIs.
+Each template is a glass shell mesh rendered semi-transparent. ROI solids always sit in MNI152 world coords regardless of which template is active — switching templates only changes the enclosing shell, not where the regions are.
 
 | id | Source | Notes |
 |---|---|---|
-| `mni152_brain` | `load_mni152_brain_mask()` → marching_cubes → smooth | Default. Full brain incl. subcortex. Correct alignment with all volume atlases. |
-| `fsaverage_pial` | `fetch_surf_fsaverage('fsaverage6').pial_{left,right}` | Most anatomically detailed cortical surface. |
+| `mni152_detailed` | iso-surface of `load_mni152_gm_template(resolution=1)` at 0.5 | Default. Detailed cortical gyri visible. Includes subcortical GM so subcortical ROIs still fit inside. |
+| `mni152_brain` | `load_mni152_brain_mask()` → marching_cubes → smooth | Simplified brain envelope. Chunkier, no gyri, but fully watertight around every voxel of the brain mask. |
+| `fsaverage_pial` | `fetch_surf_fsaverage('fsaverage6').pial_{left,right}` | FreeSurfer pial surface. |
 | `fsaverage_white` | same, `white_*` | Grey/white boundary surface. |
-| `fsaverage_inflated` | same, `infl_*` | Stylized inflated cortex. |
+| `fsaverage_inflated` | same, `infl_*` | Stylized inflated cortex. LH/RH separated along X with a 20 mm midline gap so the two hemispheres don't overlap. |
 
-**Alignment caveat**: fsaverage lives in FreeSurfer's MNI305-ish space — ROIs in MNI152 volume space will have ~mm-scale drift relative to fsaverage shells, mostly visible at the cortical surface. For precise overlay, use the default `mni152_brain`. fsaverage is best for cortical-only figures where stylized aesthetics matter more than mm-level anatomical precision.
+**Alignment caveat**: fsaverage lives in FreeSurfer's MNI305-ish space — ROIs in MNI152 volume space will have mm-scale drift relative to fsaverage shells, mostly visible at the cortical surface. For precise overlay, use `mni152_detailed`. fsaverage is best for cortical-only figures where stylized aesthetics matter more than mm-level anatomical precision.
+
+Template meshes are cached at `~/.cache/brain_viewer/templates/{id}_v{N}.vtp` — delete to force a rebuild.
 
 ## Export
 

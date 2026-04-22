@@ -3,6 +3,8 @@
 All meshes are returned in MNI152 world coordinates (mm). fsaverage meshes live in
 FreeSurfer's native coord system, which is linearly close to MNI152 — acceptable
 for stylized figures, with a documented mm-scale drift vs. volume atlases.
+
+Cache filenames include TEMPLATE_CACHE_VERSION so a bump forces a rebuild.
 """
 
 from __future__ import annotations
@@ -18,6 +20,10 @@ from . import config
 from .meshing import _mask_to_polydata
 
 
+TEMPLATE_CACHE_VERSION = 4
+INFLATED_MIDLINE_GAP_MM = 20.0  # total gap between LH and RH medial walls on inflated
+
+
 @dataclass
 class TemplateMesh:
     id: str
@@ -28,7 +34,23 @@ class TemplateMesh:
 # ---- Builders --------------------------------------------------------------
 
 
-def _build_mni152_brain() -> pv.PolyData:
+def _build_mni152_detailed() -> pv.PolyData:
+    """Detailed MNI152 brain surface with gyri — iso-surface of the GM probability map.
+
+    The GM probability template has clear contrast between cortical ribbon (high
+    probability) and sulcal CSF / background (low probability), so marching-cubes
+    at ~0.5 traces a surface that shows gyri faithfully. Includes subcortical GM,
+    so subcortical ROIs still sit inside the shell.
+    """
+    from nilearn import datasets
+
+    img = datasets.load_mni152_gm_template(resolution=1)
+    data = np.asarray(img.dataobj).astype(np.float32)
+    return _mask_to_polydata(data, img.affine, smoothing_iters=5, level=0.5)
+
+
+def _build_mni152_brain_mask() -> pv.PolyData:
+    """Simple MNI152 brain-mask envelope — chunky but encloses all subcortex."""
     from nilearn import datasets
 
     img = datasets.load_mni152_brain_mask()
@@ -41,10 +63,19 @@ def _fsaverage_combined(which: str) -> pv.PolyData:
     from nilearn import datasets, surface
 
     fs = datasets.fetch_surf_fsaverage("fsaverage6", data_dir=str(config.ATLAS_CACHE_DIR))
-    key_lh = f"{which}_left"
-    key_rh = f"{which}_right"
-    lh_coords, lh_faces = surface.load_surf_mesh(fs[key_lh])
-    rh_coords, rh_faces = surface.load_surf_mesh(fs[key_rh])
+    lh_coords, lh_faces = surface.load_surf_mesh(fs[f"{which}_left"])
+    rh_coords, rh_faces = surface.load_surf_mesh(fs[f"{which}_right"])
+
+    if which == "infl":
+        # Raw fsaverage inflated hemispheres extend past the mid-sagittal plane
+        # (LH reaches into X>0, RH reaches into X<0), so concatenated they overlap
+        # badly. Translate each so its medial-most X lands a fixed distance from
+        # midline — guarantees a clean gap independent of raw extents.
+        lh_coords = lh_coords.copy()
+        rh_coords = rh_coords.copy()
+        half_gap = INFLATED_MIDLINE_GAP_MM / 2.0
+        lh_coords[:, 0] -= lh_coords[:, 0].max() + half_gap
+        rh_coords[:, 0] += half_gap - rh_coords[:, 0].min()
 
     n_lh = len(lh_coords)
     coords = np.vstack([lh_coords, rh_coords])
@@ -53,8 +84,7 @@ def _fsaverage_combined(which: str) -> pv.PolyData:
     pv_faces = np.hstack(
         [np.full((len(faces), 1), 3, dtype=np.int64), faces.astype(np.int64)]
     ).ravel()
-    mesh = pv.PolyData(coords, pv_faces).clean()
-    return mesh
+    return pv.PolyData(coords, pv_faces).clean()
 
 
 def _build_fsaverage_pial() -> pv.PolyData:
@@ -70,10 +100,11 @@ def _build_fsaverage_inflated() -> pv.PolyData:
 
 
 _BUILDERS: dict[str, tuple[str, Callable[[], pv.PolyData]]] = {
-    "mni152_brain":       ("MNI152 brain (volume mask)", _build_mni152_brain),
-    "fsaverage_pial":     ("fsaverage pial (cortex)",    _build_fsaverage_pial),
-    "fsaverage_white":    ("fsaverage white (cortex)",   _build_fsaverage_white),
-    "fsaverage_inflated": ("fsaverage inflated",          _build_fsaverage_inflated),
+    "mni152_detailed":    ("MNI152 (detailed, gyri)",    _build_mni152_detailed),
+    "mni152_brain":       ("MNI152 brain mask (simple)", _build_mni152_brain_mask),
+    "fsaverage_pial":     ("fsaverage pial",             _build_fsaverage_pial),
+    "fsaverage_white":    ("fsaverage white",            _build_fsaverage_white),
+    "fsaverage_inflated": ("fsaverage inflated",         _build_fsaverage_inflated),
 }
 
 
@@ -95,7 +126,7 @@ class TemplateRegistry:
         if cached is not None:
             return cached
 
-        disk_path = self.cache_dir / f"{template_id}.vtp"
+        disk_path = self.cache_dir / f"{template_id}_v{TEMPLATE_CACHE_VERSION}.vtp"
         if disk_path.exists():
             mesh = pv.read(str(disk_path))
             if isinstance(mesh, pv.PolyData) and mesh.n_points > 0:
