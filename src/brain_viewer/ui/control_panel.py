@@ -10,6 +10,8 @@ from .. import config
 from ..atlases import AtlasRegistry
 from ..scene import SceneManager
 from ..templates import TemplateRegistry
+from .. import custom_atlases
+from .custom_atlas_dialog import CustomAtlasDialog
 from .export_dialog import ExportDialog, ExportSettings
 from .layer_row import LayerRow
 from .template_row import TemplateRow
@@ -83,11 +85,25 @@ class ControlPanel(QtWidgets.QWidget):
         box = QtWidgets.QGroupBox("Atlas")
         v = QtWidgets.QVBoxLayout(box)
 
+        atlas_row = QtWidgets.QHBoxLayout()
         self.atlas_combo = QtWidgets.QComboBox()
-        for aid, name in self.atlases.list_atlases():
-            self.atlas_combo.addItem(name, aid)
+        self._repopulate_atlas_combo(select_id=None)
         self.atlas_combo.currentIndexChanged.connect(self._on_atlas_changed)
-        v.addWidget(self.atlas_combo)
+        atlas_row.addWidget(self.atlas_combo, 1)
+
+        self.add_custom_atlas_btn = QtWidgets.QPushButton("+")
+        self.add_custom_atlas_btn.setFixedWidth(26)
+        self.add_custom_atlas_btn.setToolTip("Add custom atlas (NIfTI file or URL)")
+        self.add_custom_atlas_btn.clicked.connect(self._open_custom_atlas_dialog)
+        atlas_row.addWidget(self.add_custom_atlas_btn)
+
+        self.remove_custom_atlas_btn = QtWidgets.QPushButton("✕")
+        self.remove_custom_atlas_btn.setFixedWidth(26)
+        self.remove_custom_atlas_btn.setToolTip("Remove the currently selected custom atlas")
+        self.remove_custom_atlas_btn.clicked.connect(self._remove_current_custom_atlas)
+        self.remove_custom_atlas_btn.setEnabled(False)
+        atlas_row.addWidget(self.remove_custom_atlas_btn)
+        v.addLayout(atlas_row)
 
         self.filter_edit = QtWidgets.QLineEdit()
         self.filter_edit.setPlaceholderText("Filter regions…")
@@ -210,8 +226,27 @@ class ControlPanel(QtWidgets.QWidget):
             row.setParent(None)
             row.deleteLater()
 
+    def _repopulate_atlas_combo(self, select_id: str | None) -> None:
+        """Rebuild the atlas dropdown (preserves or switches selection)."""
+        self.atlas_combo.blockSignals(True)
+        try:
+            self.atlas_combo.clear()
+            for aid, name in self.atlases.list_atlases():
+                self.atlas_combo.addItem(name, aid)
+            if select_id is not None:
+                for i in range(self.atlas_combo.count()):
+                    if self.atlas_combo.itemData(i) == select_id:
+                        self.atlas_combo.setCurrentIndex(i)
+                        break
+        finally:
+            self.atlas_combo.blockSignals(False)
+
     def _on_atlas_changed(self, _index: int) -> None:
         aid = self.atlas_combo.currentData()
+        if hasattr(self, "remove_custom_atlas_btn"):
+            self.remove_custom_atlas_btn.setEnabled(
+                bool(aid) and aid.startswith(custom_atlases.CUSTOM_ID_PREFIX)
+            )
         if not aid:
             return
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
@@ -234,6 +269,49 @@ class ControlPanel(QtWidgets.QWidget):
             item.setData(QtCore.Qt.UserRole, label.index)
             self.region_list.addItem(item)
         self._apply_region_filter(self.filter_edit.text())
+
+    def _open_custom_atlas_dialog(self) -> None:
+        dialog = CustomAtlasDialog(self)
+        if dialog.exec() != QtWidgets.QDialog.Accepted:
+            return
+        data = dialog.input()
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            spec = custom_atlases.add_custom_atlas(
+                data.display_name,
+                data.volume_source,
+                data.labels_source,
+            )
+        except Exception as exc:
+            QtWidgets.QApplication.restoreOverrideCursor()
+            QtWidgets.QMessageBox.critical(
+                self, "Add atlas failed", f"Could not register custom atlas:\n{exc}"
+            )
+            return
+        QtWidgets.QApplication.restoreOverrideCursor()
+
+        self._repopulate_atlas_combo(select_id=spec.id)
+        # Trigger loading the region list for the newly selected atlas.
+        self._on_atlas_changed(self.atlas_combo.currentIndex())
+
+    def _remove_current_custom_atlas(self) -> None:
+        aid = self.atlas_combo.currentData()
+        if not aid or not aid.startswith(custom_atlases.CUSTOM_ID_PREFIX):
+            return
+        label = self.atlas_combo.currentText()
+        reply = QtWidgets.QMessageBox.question(
+            self,
+            "Remove custom atlas",
+            f"Remove {label!r}?\n\nThis deletes its cached NIfTI and labels from disk.",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+        if reply != QtWidgets.QMessageBox.Yes:
+            return
+        custom_atlases.remove_custom_atlas(aid)
+        self.atlases.invalidate(aid)
+        self._repopulate_atlas_combo(select_id=None)
+        self._on_atlas_changed(self.atlas_combo.currentIndex())
 
     def _apply_region_filter(self, text: str) -> None:
         needle = text.strip().lower()

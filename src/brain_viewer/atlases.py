@@ -270,14 +270,31 @@ class AtlasRegistry:
     _cache: dict[str, AtlasData] = field(default_factory=dict)
 
     def list_atlases(self) -> list[tuple[str, str]]:
-        return [(aid, _DISPLAY_NAMES[aid]) for aid, _, _ in _REGISTRY]
+        # Lazy import to avoid a circular dependency at module load.
+        from .custom_atlases import list_custom_atlases
+
+        built_in = [(aid, _DISPLAY_NAMES[aid]) for aid, _, _ in _REGISTRY]
+        custom = [(s.id, f"Custom: {s.name}") for s in list_custom_atlases()]
+        return built_in + custom
 
     def get_atlas(self, atlas_id: str) -> AtlasData:
-        if atlas_id not in _FETCHERS:
-            raise KeyError(f"Unknown atlas id: {atlas_id!r}")
         cached = self._cache.get(atlas_id)
         if cached is not None:
             return cached
-        atlas = _FETCHERS[atlas_id]()
+
+        if atlas_id in _FETCHERS:
+            atlas = _FETCHERS[atlas_id]()
+        else:
+            # Fall back to custom atlas registry.
+            from .custom_atlases import fetch_custom_atlas, list_custom_atlases
+
+            spec = next((s for s in list_custom_atlases() if s.id == atlas_id), None)
+            if spec is None:
+                raise KeyError(f"Unknown atlas id: {atlas_id!r}")
+            atlas = fetch_custom_atlas(spec)
+
         self._cache[atlas_id] = atlas
         return atlas
+
+    def invalidate(self, atlas_id: str) -> None:
+        self._cache.pop(atlas_id, None)

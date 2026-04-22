@@ -69,6 +69,16 @@ All shipped atlases resolve labels into a 3D volume in MNI152 (or close) space, 
 
 - **AAL**: the upstream server `www.gin.cnrs.fr` uses a certificate chain that some systems reject. If AAL fails to download with `SSLCertVerificationError`, update `ca-certificates` on your system and retry.
 
+### Custom atlases
+
+To add your own parcellation (e.g. a more detailed insula atlas), click **`+`** next to the atlas dropdown:
+
+- **Display name** — how it appears in the dropdown (prefixed `Custom: …`).
+- **Volume** — a local NIfTI path (`.nii` / `.nii.gz`) or an HTTP(S) URL. Must be in MNI152 space to align with the template shells. 4D volumes are auto-detected as probabilistic (one channel per region, thresholded at 0.25 by default for mesh extraction).
+- **Labels** (optional) — a CSV/TSV with `index` + `name` columns, a JSON dict (`{"1": "Insula_anterior", ...}`), or a plain text file with `index name` lines (FSL LUT style). If omitted, regions are auto-named `Label N` from unique integer values in the volume.
+
+The dialog downloads or copies the files into `~/.cache/brain_viewer/atlases/custom/<id>/` and writes a small `index.json`, so your custom atlases persist across sessions. The **`✕`** button next to the dropdown removes the currently-selected custom atlas (cache files and all).
+
 ### Glasser HCP-MMP1.0 (manual install)
 
 The Glasser atlas is not bundled with nilearn because of licensing. To enable it:
