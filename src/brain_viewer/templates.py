@@ -20,7 +20,7 @@ from . import config
 from .meshing import _mask_to_polydata
 
 
-TEMPLATE_CACHE_VERSION = 4
+TEMPLATE_CACHE_VERSION = 5  # v5: fix triangle winding for negative-det affines
 INFLATED_MIDLINE_GAP_MM = 20.0  # total gap between LH and RH medial walls on inflated
 
 

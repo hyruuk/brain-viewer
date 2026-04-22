@@ -68,6 +68,15 @@ class ControlPanel(QtWidgets.QWidget):
         add_row.addWidget(add_btn)
         v.addLayout(add_row)
 
+        self.cull_backfaces_check = QtWidgets.QCheckBox("Cull back faces of shells")
+        self.cull_backfaces_check.setToolTip(
+            "On: draw only the near-camera side of each shell (cleaner interior).\n"
+            "Off: draw both sides (you'll see the back of the brain through the front)."
+        )
+        self.cull_backfaces_check.setChecked(True)
+        self.cull_backfaces_check.toggled.connect(self.scene.set_shell_backface_culling)
+        v.addWidget(self.cull_backfaces_check)
+
         # Scrollable stack of active shells.
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)

@@ -19,6 +19,8 @@ from skimage import measure
 from . import config
 from .atlases import AtlasData
 
+MESH_CACHE_VERSION = 2  # v2: fix triangle winding for negative-det affines
+
 
 class MeshBuilder:
     def __init__(self, cache_dir: Path = config.MESH_CACHE_DIR):
@@ -51,7 +53,7 @@ class MeshBuilder:
     def _cache_path(
         self, atlas_id: str, label_index: int, threshold: float, smoothing_iters: int
     ) -> Path:
-        key = f"{atlas_id}|{label_index}|{threshold:.4f}|{smoothing_iters}"
+        key = f"v{MESH_CACHE_VERSION}|{atlas_id}|{label_index}|{threshold:.4f}|{smoothing_iters}"
         digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
         return self.cache_dir / f"{atlas_id}_{label_index}_{digest}.vtp"
 
@@ -88,6 +90,15 @@ def _mask_to_polydata(
     # Voxel → world coords via the atlas affine.
     homog = np.c_[verts, np.ones(len(verts))]
     world = (affine @ homog.T).T[:, :3]
+
+    # marching_cubes emits triangles with a fixed winding in voxel-index space.
+    # If the affine's 3×3 has a negative determinant (very common in MNI152
+    # volumes where X is flipped for radiological convention) the world-space
+    # winding ends up inverted — outward-facing normals then point *inward*,
+    # and backface-culling hides the near-camera triangles. Flip per-triangle
+    # vertex order to restore correct outward normals in world coords.
+    if np.linalg.det(affine[:3, :3]) < 0:
+        faces = faces[:, ::-1]
 
     # pyvista face array: [3, i0, i1, i2, 3, i0, i1, i2, ...]
     pv_faces = np.hstack(

@@ -66,6 +66,8 @@ class SceneManager:
         self.layers: dict[str, Layer] = {}
         # Multiple template shells can be stacked; each has its own opacity.
         self.template_shells: dict[str, TemplateShell] = {}
+        # Cull back faces on template shells (on by default: cleaner interior view).
+        self._cull_backfaces: bool = True
 
         plotter.set_background("white")
         try:
@@ -100,16 +102,36 @@ class SceneManager:
             smooth_shading=True,
             name=f"__template_{template_id}__",
         )
-        try:
-            actor.prop.SetBackfaceCulling(True)
-        except Exception:
-            pass
+        self._apply_shell_cull(actor)
 
-        self.template_shells[template_id] = TemplateShell(
+        shell = TemplateShell(
             id=template_id, name=tpl.name, mesh=tpl.mesh,
             opacity=op, visible=True, actor=actor,
         )
+        self.template_shells[template_id] = shell
+        self._apply_effective_visibility(shell)
         self._render()
+
+    def set_shell_backface_culling(self, enabled: bool) -> None:
+        """Toggle backface culling on every template shell actor."""
+        self._cull_backfaces = enabled
+        for shell in self.template_shells.values():
+            self._apply_shell_cull(shell.actor)
+        self._render()
+
+    @staticmethod
+    def _apply_effective_visibility(shell: "TemplateShell") -> None:
+        """A shell is shown only if visible AND opacity > 0 — a zero-opacity
+        actor still participates in depth peeling and can create line artifacts
+        when stacked with another shell, so hide it outright at opacity == 0."""
+        effective = shell.visible and shell.opacity > 0.0
+        shell.actor.SetVisibility(effective)
+
+    def _apply_shell_cull(self, actor: Any) -> None:
+        try:
+            actor.prop.SetBackfaceCulling(bool(self._cull_backfaces))
+        except Exception:
+            pass
 
     def remove_template(self, template_id: str) -> None:
         shell = self.template_shells.pop(template_id, None)
@@ -130,9 +152,10 @@ class SceneManager:
         if opacity is not None:
             shell.opacity = opacity
             shell.actor.prop.opacity = opacity
-        if visible is not None and visible != shell.visible:
+        if visible is not None:
             shell.visible = visible
-            shell.actor.SetVisibility(visible)
+        # Recompute effective visibility whenever opacity or visibility changes.
+        self._apply_effective_visibility(shell)
         self._render()
 
     # -- Layers --------------------------------------------------------------
@@ -284,7 +307,7 @@ class SceneManager:
             pass
 
         for shell in self.template_shells.values():
-            if not shell.visible:
+            if not shell.visible or shell.opacity <= 0.0:
                 continue
             tpl_actor = off.add_mesh(
                 shell.mesh,
@@ -295,7 +318,7 @@ class SceneManager:
                 smooth_shading=True,
             )
             try:
-                tpl_actor.prop.SetBackfaceCulling(True)
+                tpl_actor.prop.SetBackfaceCulling(bool(self._cull_backfaces))
             except Exception:
                 pass
 
