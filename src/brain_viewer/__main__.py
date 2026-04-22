@@ -12,9 +12,12 @@ def main() -> int:
         QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
-    app.setApplicationName("brain_viewer")
-    app.setApplicationDisplayName("brain_viewer")
-    app.setDesktopFileName("brain_viewer")
+    app.setApplicationName("brain_viewer")            # used by QSettings / QStandardPaths
+    app.setApplicationDisplayName("Brain viewer")     # user-facing
+
+    # Silence the xdg-desktop-portal DBus warning that fires when the session bus
+    # is already bound to another app ID — harmless, but noisy on stdout.
+    QtCore.QLoggingCategory.setFilterRules("qt.qpa.services.warning=false")
 
     # Delay heavy imports until after QApplication exists to avoid Qt platform issues.
     from .icons import get_app_icon
