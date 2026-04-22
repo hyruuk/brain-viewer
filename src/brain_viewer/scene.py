@@ -37,6 +37,7 @@ class Layer:
     mesh: pv.PolyData
     mesh_actor: Any  # vtkActor
     label_actor: Any | None = None  # vtkActor or None
+    visible: bool = True
 
 
 class SceneManager:
@@ -166,6 +167,7 @@ class SceneManager:
         color: tuple[float, float, float] | None = None,
         opacity: float | None = None,
         show_label: bool | None = None,
+        visible: bool | None = None,
     ) -> None:
         layer = self.layers[layer_id]
 
@@ -179,10 +181,17 @@ class SceneManager:
             layer.show_label = show_label
             if show_label:
                 layer.label_actor = self._add_label(layer_id, layer.mesh, layer.label_name)
+                if not layer.visible:
+                    layer.label_actor.SetVisibility(False)
             else:
                 if layer.label_actor is not None:
                     self.plotter.remove_actor(layer.label_actor, render=False)
                     layer.label_actor = None
+        if visible is not None and visible != layer.visible:
+            layer.visible = visible
+            layer.mesh_actor.SetVisibility(visible)
+            if layer.label_actor is not None:
+                layer.label_actor.SetVisibility(visible)
         self._render()
 
     def remove_layer(self, layer_id: str) -> None:
@@ -264,6 +273,8 @@ class SceneManager:
         font_px = max(14, int(round(28 * target_w / base_w)))
 
         for layer in self.layers.values():
+            if not layer.visible:
+                continue
             off.add_mesh(
                 layer.mesh,
                 color=layer.color,

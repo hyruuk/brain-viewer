@@ -40,6 +40,7 @@ class LayerRow(QtWidgets.QFrame):
     colorChanged = QtCore.Signal(str, tuple)      # layer_id, (r, g, b)
     opacityChanged = QtCore.Signal(str, float)    # layer_id, opacity 0–1
     labelToggled = QtCore.Signal(str, bool)       # layer_id, show_label
+    visibilityToggled = QtCore.Signal(str, bool)  # layer_id, visible
     removeRequested = QtCore.Signal(str)          # layer_id
 
     def __init__(
@@ -49,6 +50,7 @@ class LayerRow(QtWidgets.QFrame):
         color: tuple[float, float, float],
         opacity: float,
         show_label: bool,
+        visible: bool = True,
         parent=None,
     ):
         super().__init__(parent)
@@ -61,6 +63,12 @@ class LayerRow(QtWidgets.QFrame):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(6, 4, 6, 4)
         layout.setSpacing(6)
+
+        self.visible_checkbox = QtWidgets.QCheckBox()
+        self.visible_checkbox.setChecked(visible)
+        self.visible_checkbox.setToolTip("Show / hide this layer")
+        self.visible_checkbox.toggled.connect(self._on_visibility_toggled)
+        layout.addWidget(self.visible_checkbox)
 
         self.swatch = ColorSwatch(qcolor)
         self.swatch.colorPicked.connect(self._on_color_picked)
@@ -101,3 +109,11 @@ class LayerRow(QtWidgets.QFrame):
 
     def _on_label_toggled(self, checked: bool) -> None:
         self.labelToggled.emit(self.layer_id, checked)
+
+    def _on_visibility_toggled(self, checked: bool) -> None:
+        # Dim the row when hidden so it's visually obvious from the list.
+        self.name_label.setEnabled(checked)
+        self.swatch.setEnabled(checked)
+        self.opacity_slider.setEnabled(checked)
+        self.label_checkbox.setEnabled(checked)
+        self.visibilityToggled.emit(self.layer_id, checked)

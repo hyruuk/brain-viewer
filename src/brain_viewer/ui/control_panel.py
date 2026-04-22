@@ -239,7 +239,7 @@ class ControlPanel(QtWidgets.QWidget):
         opacity: float,
         show_label: bool,
     ) -> None:
-        row = LayerRow(layer_id, display_name, color, opacity, show_label)
+        row = LayerRow(layer_id, display_name, color, opacity, show_label, visible=True)
         row.colorChanged.connect(
             lambda lid, c: self.scene.update_layer(lid, color=c)
         )
@@ -248,6 +248,9 @@ class ControlPanel(QtWidgets.QWidget):
         )
         row.labelToggled.connect(
             lambda lid, v: self.scene.update_layer(lid, show_label=v)
+        )
+        row.visibilityToggled.connect(
+            lambda lid, v: self.scene.update_layer(lid, visible=v)
         )
         row.removeRequested.connect(self._remove_layer)
         self._layers_vbox.insertWidget(self._layers_vbox.count() - 1, row)

@@ -18,13 +18,20 @@ pip install -e ".[dev]"
 
 ## Run the GUI
 
+Inside the repo:
 ```bash
 .venv/bin/python -m brain_viewer
 ```
 
+Or from anywhere (once per machine, after `pip install -e`):
+```bash
+ln -sf "$(pwd)/.venv/bin/brain-viewer" ~/.local/bin/brain-viewer
+brain-viewer
+```
+
 - **Template** section: switch between MNI152 and the three fsaverage variants; adjust opacity; hide/show the shell.
 - **Atlas** section: pick an atlas, filter regions, multi-select and click *Add* (or double-click a region).
-- **Layers** section: per-layer color picker, opacity slider, label toggle, remove button.
+- **Layers** section: each row has a visibility checkbox, color picker, opacity slider, label toggle, and remove (✕). Hidden layers are greyed out and excluded from exports.
 - **View** section: six cardinal view presets plus an oblique.
 - **File → Export PNG…** (or Ctrl+E): choose width (px), DPI, transparent background.
 
