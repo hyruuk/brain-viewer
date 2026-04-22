@@ -51,23 +51,72 @@ Writes `scripts/demo.png` and `scripts/demo_anterior.png`.
 
 ## Atlases
 
-All shipped atlases resolve labels into a 3D volume in MNI152 (or close) space, then extract ROI meshes via marching cubes + Taubin smoothing. First-time loads download the atlas through nilearn; subsequent loads hit the local cache in `~/.cache/brain_viewer/atlases/`.
+The dropdown ships **~40 built-in atlases** grouped by anatomy (Cortex / Subcortex / Cerebellum / Thalamus / White matter / Whole brain / Networks). First-time loads download through nilearn or a pinned external URL; subsequent loads hit the on-disk cache under `~/.cache/brain_viewer/atlases/`.
 
-| id | Source | Coverage |
+### Cortex
+| id | Source | Regions |
 |---|---|---|
-| `harvard_oxford_cort` | `fetch_atlas_harvard_oxford('cort-maxprob-thr25-2mm')` | 48 cortical regions |
-| `harvard_oxford_sub` | `fetch_atlas_harvard_oxford('sub-maxprob-thr25-2mm')` | 21 subcortical regions |
-| `aal` | `fetch_atlas_aal('SPM12')` | ~116 regions, cortex + subcortex + cerebellum |
-| `destrieux` | `fetch_atlas_destrieux_2009()` | 148 cortical gyri/sulci |
-| `juelich` | `fetch_atlas_juelich('maxprob-thr25-2mm')` | 62 cytoarchitectonic areas |
-| `schaefer_{100,200,400,600,1000}_7` | `fetch_atlas_schaefer_2018(n_rois=n, yeo_networks=7)` | Cortical parcellations, 7 networks |
-| `yeo_7`, `yeo_17` | `fetch_atlas_yeo_2011(n_networks=n, thickness='thick')` | Resting-state functional networks |
-| `msdl` | `fetch_atlas_msdl()` | 39 probabilistic functional networks (thresholded at 0.25 by default) |
-| `glasser_hcp_mmp1` | Manual — see below | 360 cortical parcels |
+| `harvard_oxford_cort` | nilearn `fetch_atlas_harvard_oxford('cort-maxprob-thr25-2mm')` | 48 |
+| `destrieux` | nilearn `fetch_atlas_destrieux_2009()` | 148 gyri/sulci |
+| `juelich` | nilearn `fetch_atlas_juelich('maxprob-thr25-2mm')` | 62 cytoarchitectonic |
+| `schaefer_{100,200,400,600,1000}_7` | nilearn `fetch_atlas_schaefer_2018` | 100–1000 parcels, 7 nets |
+| `yeo_7`, `yeo_17` | nilearn `fetch_atlas_yeo_2011` | 7 / 17 networks |
+| `talairach_lobe`, `talairach_gyrus`, `talairach_ba` | nilearn `fetch_atlas_talairach` | 12 / 55 / 48 |
+| `allen_2011_rsn` | nilearn `fetch_atlas_allen_2011` | 28 RSNs |
+| `glasser_hcp_mmp1_auto` | figshare 3501911 → `HCP-MMP1_on_MNI152_ICBM2009a_nlin.nii.gz` | 179 (left hemisphere only) |
+| `glasser_hcp_mmp1` | manual install (see below) | 360 (bilateral) |
+
+### Subcortex
+| id | Source | Regions |
+|---|---|---|
+| `harvard_oxford_sub` | nilearn `fetch_atlas_harvard_oxford('sub-…-thr25-2mm')` | 21 |
+| `pauli_2017_det`, `pauli_2017_prob` | nilearn `fetch_atlas_pauli_2017` | 12 / 16 |
+| `melbourne_sub_s{1,2,3,4}` | nitrc Tian 2020 MSA zip | 16 / 32 / 50 / 54 |
+
+### Cerebellum
+| id | Source | Regions |
+|---|---|---|
+| `suit_anatom` | github DiedrichsenLab/cerebellar_atlases | 34 lobules (SUIT) |
+| `buckner_cerebellar_7`, `buckner_cerebellar_17` | same repo | 7 / 17 networks |
+| `mdtb_10` | same repo (King 2019) | 10 task domains |
+
+### Thalamus
+| id | Source | Regions |
+|---|---|---|
+| `najdenovska_thalamus` | Zenodo 1405484 (max-prob) | 14 (7 per hemi) |
+| `najdenovska_thalamus_prob` | Zenodo 1405484 (4D probabilistic) | 14 |
+
+### White matter
+| id | Source | Regions |
+|---|---|---|
+| `jhu_wm_labels` | NeuroVault 264 — JHU ICBM labels | 48 tracts |
+
+### Whole brain / Networks
+| id | Source | Regions |
+|---|---|---|
+| `aal` | nilearn `fetch_atlas_aal('SPM12')` | ~116 |
+| `basc_{64,122,444}_sym` | nilearn `fetch_atlas_basc_multiscale_2015` | 64 / 122 / 444 |
+| `difumo_{64,256,1024}` | nilearn `fetch_atlas_difumo` | 64 / 256 / 1024 (probabilistic) |
+| `craddock_2012` | nilearn `fetch_atlas_craddock_2012` | ~43 (scorr_mean) |
+| `msdl` | nilearn `fetch_atlas_msdl` | 39 probabilistic |
+| `smith_2009_rsn_{10,70}` | nilearn `fetch_atlas_smith_2009` | 10 / 70 ICA networks |
 
 ### Known issues
 
-- **AAL**: the upstream server `www.gin.cnrs.fr` uses a certificate chain that some systems reject. If AAL fails to download with `SSLCertVerificationError`, update `ca-certificates` on your system and retry.
+- **AAL** and **Talairach gyrus/BA** and **Craddock 2012** upstream hosts (`www.gin.cnrs.fr`, `www.talairach.org`, `cluster_roi.projects.nitrc.org`) have had intermittent TLS certificate problems. If these fail to download with `SSLCertVerificationError`, updating your system `ca-certificates` usually fixes it.
+- **Glasser auto-download** is left-hemisphere only (179 regions). For full bilateral 360-region Glasser, use the manual-install path below.
+
+### Atlases available via "+ Add custom atlas" (manual / restricted)
+
+These require registration, have ambiguous redistribution terms, or aren't in MNI152 volume form — use the **`+`** button in the Atlas section to paste a URL or local file after downloading:
+
+- **Brainnetome** (BN_Atlas, 246 regions) — https://atlas.brainnetome.org (registration)
+- **AICHA** (384 regions) — Joliot lab / Lead-DBS
+- **Iglesias hippocampal subfields** — FreeSurfer license; tied to FreeSurfer install
+- **Gordon 2016** (333 cortical parcels) — BALSA (CIFTI surface-only by default)
+- **Morel thalamus** — Zenodo (search "Morel atlas")
+- **CIT168** (14 subcortical ROIs) — https://osf.io/r2hvk
+- **Glasser bilateral (360 regions)** — place at `~/.cache/brain_viewer/atlases/glasser/HCP-MMP1_on_MNI152.nii.gz` with a `HCP-MMP1_labels.csv` alongside (see `glasser_hcp_mmp1` entry).
 
 ### Custom atlases
 

@@ -6,6 +6,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from pyvistaqt import QtInteractor
 
 from ..atlases import AtlasRegistry
+from ..external_atlases import EXTERNAL_ENTRIES
 from ..icons import get_app_icon
 from ..meshing import MeshBuilder
 from ..scene import SceneManager
@@ -26,6 +27,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Core services.
         self.atlases = AtlasRegistry()
+        self.atlases.register_external(EXTERNAL_ENTRIES)
         self.templates = TemplateRegistry()
         self.mesh_builder = MeshBuilder()
         self.scene = SceneManager(

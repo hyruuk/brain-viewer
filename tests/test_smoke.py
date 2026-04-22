@@ -15,11 +15,60 @@ import numpy as np
 import pyvista as pv
 from PIL import Image
 
+import pytest
+
 from brain_viewer import config
 from brain_viewer.atlases import AtlasRegistry
+from brain_viewer.external_atlases import EXTERNAL_ENTRIES
 from brain_viewer.meshing import MeshBuilder
 from brain_viewer.scene import SceneManager
 from brain_viewer.templates import TemplateRegistry
+
+
+# Atlases that are small-cached and reliably load in CI without long downloads.
+FAST_ATLASES = [
+    "harvard_oxford_cort",
+    "harvard_oxford_sub",
+    "destrieux",
+    "juelich",
+    "schaefer_100_7",
+    "schaefer_400_7",
+    "yeo_7",
+    "yeo_17",
+    "msdl",
+    "pauli_2017_det",
+    "basc_64_sym",
+]
+
+
+@pytest.mark.parametrize("atlas_id", FAST_ATLASES)
+def test_registered_atlas_loads(atlas_id: str) -> None:
+    """Every listed atlas loads into a usable AtlasData."""
+    reg = AtlasRegistry()
+    atlas = reg.get_atlas(atlas_id)
+    assert atlas.volume.ndim in (3, 4)
+    assert len(atlas.labels) >= 1
+    mb = MeshBuilder()
+    # Mesh the first non-empty label.
+    for lb in atlas.labels[:5]:
+        try:
+            mesh = mb.label_to_mesh(atlas, lb.index)
+            assert mesh.n_points > 50
+            return
+        except ValueError:
+            continue
+    pytest.fail(f"No non-empty label found in first 5 of {atlas_id}")
+
+
+def test_external_entries_catalog() -> None:
+    """External atlas entries register with distinct IDs and non-empty names."""
+    reg = AtlasRegistry()
+    reg.register_external(EXTERNAL_ENTRIES)
+    listing = reg.list_atlases()
+    ids = {aid for aid, _ in listing}
+    for e in EXTERNAL_ENTRIES:
+        assert e.id in ids, f"External entry {e.id!r} missing from registry listing"
+        assert e.display_name.strip()
 
 
 def test_harvard_oxford_cort_loads_and_meshes() -> None:

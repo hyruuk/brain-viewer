@@ -18,6 +18,7 @@ from .template_row import TemplateRow
 
 
 DEFAULT_STARTING_TEMPLATE = "mni152_detailed"
+DEFAULT_STARTING_ATLAS = "harvard_oxford_cort"
 
 
 class ControlPanel(QtWidgets.QWidget):
@@ -181,6 +182,10 @@ class ControlPanel(QtWidgets.QWidget):
                 break
         self._add_selected_template()
         if self.atlas_combo.count() > 0:
+            for i in range(self.atlas_combo.count()):
+                if self.atlas_combo.itemData(i) == DEFAULT_STARTING_ATLAS:
+                    self.atlas_combo.setCurrentIndex(i)
+                    break
             self._on_atlas_changed(self.atlas_combo.currentIndex())
 
     def _add_selected_template(self) -> None:
