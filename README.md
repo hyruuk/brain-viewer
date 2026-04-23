@@ -2,7 +2,7 @@
   <img src="assets/ezbv_banner.png" alt="ezbv" width="100%">
 </p>
 
-# ezbv
+# EZ Brain Viewer
 
 Figure-ready 3D brain viewer. Pick a transparent template shell, pick an atlas, pick the regions you want highlighted, style them, save the scene for later, and export a high-DPI PNG or a rotating GIF.
 
