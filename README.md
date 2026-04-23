@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/ezbv_banner.png" alt="ezbv" width="100%">
+</p>
+
 # ezbv
 
 Figure-ready 3D brain viewer. Pick a transparent template shell, pick an atlas, pick the regions you want highlighted, style them, save the scene for later, and export a high-DPI PNG or a rotating GIF.
@@ -198,7 +202,6 @@ The live viewer window is never resized during export.
 - Atlas downloads: `~/.cache/ezbv/atlases/`
 - Template meshes (pre-computed `.vtp`): `~/.cache/ezbv/templates/`
 - ROI meshes (per atlas label, `.vtp`): `~/.cache/ezbv/meshes/`
-- App icon (rendered from the MNI152 mesh on first run): `~/.cache/ezbv/app_icon_v1.png`
 
 Safe to delete any of these to force a rebuild.
 
