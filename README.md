@@ -6,6 +6,27 @@
 
 Figure-ready 3D brain viewer. Pick a transparent template shell, pick an atlas, pick the regions you want highlighted, style them, save the scene for later, and export a high-DPI PNG or a rotating GIF.
 
+## Examples
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="assets/demo_subcortex.png" alt="Subcortex oblique" width="100%"><br>
+      <sub>Paired subcortical structures under a glass shell (oblique).</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="assets/demo_cortex.png" alt="Cortex lateral, labeled" width="100%"><br>
+      <sub>Cortical landmarks with in-scene labels (left lateral).</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="assets/demo_rotation.gif" alt="Rotating subcortex" width="100%"><br>
+      <sub>360° rotating GIF exported from the same scene.</sub>
+    </td>
+  </tr>
+</table>
+
+All three are produced by `scripts/demo.py`.
+
 ## Install
 
 ```bash
@@ -46,7 +67,7 @@ ezbv
 .venv/bin/python scripts/demo.py
 ```
 
-Writes `scripts/demo.png` and `scripts/demo_anterior.png`.
+Writes `assets/demo_subcortex.png`, `assets/demo_cortex.png`, and `assets/demo_rotation.gif` — the same images shown in the Examples section above.
 
 ## Tests
 

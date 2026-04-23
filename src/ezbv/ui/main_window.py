@@ -17,7 +17,7 @@ from .control_panel import ControlPanel
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("ezbv")
+        self.setWindowTitle("EZ Brain Viewer")
         self.setWindowIcon(get_app_icon())
         self.resize(1400, 900)
 

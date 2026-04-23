@@ -13,7 +13,7 @@ def main() -> int:
     )
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
     app.setApplicationName("ezbv")                    # used by QSettings / QStandardPaths
-    app.setApplicationDisplayName("ezbv")             # user-facing
+    app.setApplicationDisplayName("EZ Brain Viewer")  # user-facing
 
     # Silence the xdg-desktop-portal DBus warning that fires when the session bus
     # is already bound to another app ID — harmless, but noisy on stdout.
