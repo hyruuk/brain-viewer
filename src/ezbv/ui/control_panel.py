@@ -32,6 +32,14 @@ DEFAULT_STARTING_SHELLS: tuple[tuple[str, float], ...] = (
 DEFAULT_STARTING_ATLAS = "harvard_oxford_cort"
 
 
+def _default_dir(subdir: str) -> Path:
+    """Prefer ``<cwd>/<subdir>`` if it exists; otherwise fall back to ``<cwd>``.
+    Keeps the ``scenes/`` and ``outputs/`` conventions when running from the
+    project root without forcing those dirs on users launching from elsewhere."""
+    target = Path.cwd() / subdir
+    return target if target.is_dir() else Path.cwd()
+
+
 class ControlPanel(QtWidgets.QWidget):
     def __init__(
         self,
@@ -411,7 +419,7 @@ class ControlPanel(QtWidgets.QWidget):
             self._remove_layer(lid)
 
     def _open_export_dialog(self) -> None:
-        dialog = ExportDialog(self, default_dir=Path.home())
+        dialog = ExportDialog(self, default_dir=_default_dir("outputs"))
         if dialog.exec() == QtWidgets.QDialog.Accepted:
             settings = dialog.settings()
             self._run_export(settings)
@@ -434,7 +442,7 @@ class ControlPanel(QtWidgets.QWidget):
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Save scene",
-            str(Path.home() / "scene.ezbv.json"),
+            str(_default_dir("scenes") / "scene.ezbv.json"),
             "ezbv scene (*.ezbv.json *.json)",
         )
         self._reapply_window_icon()
@@ -455,7 +463,7 @@ class ControlPanel(QtWidgets.QWidget):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self,
             "Open scene",
-            str(Path.home()),
+            str(_default_dir("scenes")),
             "ezbv scene (*.ezbv.json *.json);;All files (*)",
         )
         self._reapply_window_icon()
