@@ -10,3 +10,5 @@ dist/
 # generated output
 scripts/*.png
 *.vtp
+scenes/
+outputs/
